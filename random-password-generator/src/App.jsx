@@ -1,5 +1,4 @@
-import { useState } from "react";
-import "./App.css";
+import { useCallback, useState, useEffect, use } from "react";
 
 function App() {
   const [password, setPassword] = useState("");
@@ -7,12 +6,25 @@ function App() {
   const [numbers, setNumbers] = useState(false);
   const [specialCharacters, setSpecialCharacters] = useState(false);
 
+  const [showPopup, setShowPopup] = useState(false);
+
   function copytext() {
     navigator.clipboard.writeText(password);
+    setShowPopup(true);
   }
 
-  function generatePassword(value) {
-    setCharacters(value);
+  useEffect(() => {
+    if (showPopup) {
+      const timer = setTimeout(() => {
+        setShowPopup(false);
+      }, 2000);
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [showPopup]);
+
+  const generatePassword = useCallback(() => {
     let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if (numbers) {
       chars += "0123456789";
@@ -27,78 +39,99 @@ function App() {
       generatedPassword += chars[randomIndex];
     }
     setPassword(generatedPassword);
+  }, [characters, numbers, specialCharacters]);
+
+  // Auto-generate password when settings change
+  useEffect(() => {
+    generatePassword();
+  }, [generatePassword]);
+
+  function toggleNumber(value) {
+    setNumbers(value);
   }
 
-  async function toggleNumber(value) {
-    await setNumbers(value);
-    console.log("Numbers:", value);
-
-    generatePassword(characters);
-  }
-
-  async function toggleSpCharacter(value) {
-    await setSpecialCharacters(value);
-    generatePassword(characters);
+  function toggleSpCharacter(value) {
+    setSpecialCharacters(value);
   }
 
   return (
-    <>
-      <div className="App flex align-middle justify-center w-[100vw] bg-[blue]">
-        <div className="password-picker flex flex-col justify-center bg-[#3d3636b9] w-[70%] p-8">
-          <div className="passwrd-field flex mb-7">
-            <input
-              type="text"
-              name="password"
-              className="bg-white w-[60%] h-[40px] p-4 rounded-2xl"
-              value={password}
-            />
-            <button
-              onClick={copytext}
-              className="copy bg-blue-400 px-4 text-xl rounded-2xl ml-4 text-white"
-            >
-              Copy
-            </button>
+    <div className="App flex items-center justify-center flex-col min-h-screen w-full bg-blue-500">
+      {/* Popup meassage */}
+
+      {showPopup && (
+        <div className="absolute top-4 bg-gray-800 text-white px-6 py-4 rounded-lg shadow-lg transform transition-all duration-500 ease-in-out">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span>Password Copied</span>
           </div>
-          <div className="param-field flex">
+        </div>
+      )}
+      <div className="password-picker flex flex-col justify-center bg-gray-800 bg-opacity-75 w-[70%] max-w-lg p-8 rounded-lg">
+        <div className="password-field flex mb-7">
+          <input
+            type="text"
+            name="password"
+            className="bg-white w-full h-10 px-4 rounded-lg"
+            value={password}
+            readOnly
+          />
+          <button
+            onClick={copytext}
+            className="copy bg-blue-400 hover:bg-blue-500 px-4 py-2 text-sm rounded-lg ml-4 text-white transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+
+        <div className="param-field flex flex-col space-y-4">
+          <div className="flex items-center">
             <input
               type="range"
               name="characters"
               value={characters}
-              onChange={(e) => generatePassword(e.target.value)}
+              onChange={(e) => setCharacters(Number(e.target.value))}
               min={4}
               max={20}
+              className="flex-1"
             />
-            <span className="characters text-white font-bold ml-3">
-              {" "}
-              {characters}{" "}
+            <span className="text-white font-bold ml-3 min-w-[3rem]">
+              {characters}
             </span>
+          </div>
 
-            <div className="param-cb ml-10">
+          <div className="flex items-center space-x-6">
+            <label className="flex items-center text-white cursor-pointer">
               <input
                 type="checkbox"
-                className="mx-1 "
+                className="mr-2"
                 name="numbers"
-                id=""
+                checked={numbers}
                 onChange={(e) => toggleNumber(e.target.checked)}
               />
-              <label htmlFor="numbers" className="mr-3 text-white">
-                Numbers
-              </label>
+              Numbers
+            </label>
+
+            <label className="flex items-center text-white cursor-pointer">
               <input
                 type="checkbox"
-                name="characters"
-                className="mx-1"
-                id=""
+                name="specialCharacters"
+                className="mr-2"
+                checked={specialCharacters}
                 onChange={(e) => toggleSpCharacter(e.target.checked)}
               />
-              <label htmlFor="characters" className="mr-3 text-white">
-                characters
-              </label>
-            </div>
+              Special Characters
+            </label>
           </div>
+
+          <button
+            onClick={generatePassword}
+            className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors"
+          >
+            Generate New Password
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
